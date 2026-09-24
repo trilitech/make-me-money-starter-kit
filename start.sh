@@ -38,18 +38,16 @@ ABS_WORKDIR="$(cd "$WORKDIR" && pwd)"
 
 case "$AGENT" in
   claude)
-    # --permission-mode acceptEdits: auto-approves file edits and common
-    # filesystem commands in the working directory. Everything else (network
-    # calls, unrecognized shell commands, writes outside the working dir)
-    # still prompts.
+    # --permission-mode auto: a classifier reviews each action instead of a
+    # human, so the agent can work unattended. Blocked actions are refused
+    # and Claude carries on; nothing waits at the terminal. Needed because
+    # DMs are off, so nobody receives the plugin's relayed permission prompts
+    # (see README "Permission prompts").
     #
-    # That matters here because DMs are off and the channel's allowFrom is
-    # empty, so nobody is subscribed to the plugin's permission-prompt relay
-    # (see README "Permission prompts" section) — a prompt this mode doesn't
-    # clear will sit unanswered until someone is at the terminal. Don't
-    # switch to --dangerously-skip-permissions unless your team has decided
-    # that's an acceptable risk on your own machine; the README explains why.
-    CMD=(claude --channels "plugin:discord@claude-plugins-official" --permission-mode acceptEdits)
+    # If auto mode isn't available to your account, Claude Code starts in
+    # Manual instead; the allow list setup.sh writes to
+    # $WORKDIR/.claude/settings.json keeps common commands from stalling.
+    CMD=(claude --channels "plugin:discord@claude-plugins-official" --permission-mode auto)
     ;;
   openclaw)
     CMD=(openclaw gateway)

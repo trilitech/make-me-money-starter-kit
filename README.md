@@ -166,12 +166,19 @@ prompt is only relayed into Discord as a DM to users in the plugin's
 with no one at the terminal to answer it, the session just pauses. It does
 not crash; it does not skip the step; it waits.
 
-`start.sh` starts Claude with `--permission-mode acceptEdits`, which
-auto-approves file edits and common filesystem commands (`mkdir`, `touch`,
-`mv`, `cp`, `sed`, …) inside the working directory, and still prompts for
-everything else (network calls, unrecognized shell commands, writes outside
-the working directory, protected paths). That cuts down how often this
-happens, without granting free rein.
+`start.sh` starts Claude in **auto mode** (`--permission-mode auto`). A
+second model reviews each action instead of a person. Routine work runs,
+risky actions are refused, and Claude carries on either way, so nothing
+waits at the terminal. Auto mode is the default on Pro, Max and Team plans
+and is available with an Anthropic API key
+([docs](https://code.claude.com/docs/en/permission-modes#eliminate-prompts-with-auto-mode)).
+
+If auto mode isn't available to your account, Claude Code starts in Manual
+mode instead. As a backup, `setup.sh` writes `workspace/.claude/settings.json`
+with an allow list of common commands (npm, node, git, curl, python and so
+on) so those still run without a prompt. Edit that file to add the tools
+your agent uses. Anything not on the list will pause until someone
+approves it at the terminal.
 
 We deliberately do **not** default to `--dangerously-skip-permissions`. If
 your team decides you want a fully unattended run and understands the
@@ -203,7 +210,7 @@ Confirmed from source (not just doc pages) for this kit's design:
   `/plugin` slash commands run inside a session) — confirmed in
   [Plugins reference](https://code.claude.com/docs/en/plugins-reference) and
   [Plugin marketplaces](https://code.claude.com/docs/en/plugin-marketplaces).
-- Permission-mode behavior (`acceptEdits`, `bypassPermissions`/
+- Permission-mode behavior (`auto`, `bypassPermissions`/
   `--dangerously-skip-permissions`, and the fixed list of actions no mode
   auto-approves) — confirmed in
   [Choose a permission mode](https://code.claude.com/docs/en/permission-modes).

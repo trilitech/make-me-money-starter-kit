@@ -172,6 +172,30 @@ EOF
   else
     log "$WORKDIR/CLAUDE.md already exists — left it alone."
   fi
+
+  # --- $WORKDIR/.claude/settings.json ---
+  # Fallback for when auto mode isn't available (start.sh asks for it): an
+  # allow list so routine commands don't sit waiting for a terminal approval
+  # nobody will give. Written only if absent, so teams can edit it.
+  mkdir -p "$WORKDIR/.claude"
+  if [ ! -f "$WORKDIR/.claude/settings.json" ]; then
+    cat > "$WORKDIR/.claude/settings.json" <<'EOF'
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm *)", "Bash(npx *)", "Bash(node *)", "Bash(bun *)",
+      "Bash(python3 *)", "Bash(pip *)", "Bash(uv *)",
+      "Bash(git *)", "Bash(curl *)", "Bash(ls *)", "Bash(cat *)",
+      "WebSearch", "WebFetch(domain:*)"
+    ],
+    "deny": ["Bash(sudo *)", "Bash(rm -rf /*)", "Bash(rm -rf ~*)"]
+  }
+}
+EOF
+    WROTE_SUMMARY+=("$WORKDIR/.claude/settings.json (created)")
+  else
+    log "$WORKDIR/.claude/settings.json already exists — left it alone."
+  fi
 }
 
 setup_openclaw() {
