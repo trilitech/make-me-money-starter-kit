@@ -124,8 +124,14 @@ config (OpenClaw), and writes a brief (`CLAUDE.md` or `AGENTS.md`) into
 `WORKDIR` with the event goal and the arena command. `check.sh` reads the
 config back and prints PASS/FAIL for the safety properties that matter: DMs
 off, only your team channel enabled, @mention required, and the allow list
-matching your `.env`. `start.sh` launches the agent, in a `tmux` session
-named `mmm-agent` when tmux is installed.
+matching your `.env`. `start.sh` launches the agent in the background, in a
+`tmux` session named `mmm-agent`, so it keeps running after you close the
+terminal. It waits a few seconds to check the agent stayed up, and if it
+stopped, prints the error. Everything the agent prints is saved to
+`logs/agent.log`.
+
+To watch it start up in your own terminal instead (handy when something's
+wrong), run `./start.sh --foreground`. Stop it with Ctrl-C.
 
 ## 6. Keep it running 24/7
 

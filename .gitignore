@@ -1,3 +1,4 @@
 .env
 workspace/
 *.bak.*
+logs/
