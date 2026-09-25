@@ -86,7 +86,20 @@ CMD[0]="$BIN"
 # ---------------------------------------------------------------------------
 # Foreground: this terminal window. Default.
 # ---------------------------------------------------------------------------
+openclaw_service_running() {
+  openclaw gateway status --require-rpc >/dev/null 2>&1
+}
+
 run_foreground() {
+  # OpenClaw's own setup can install and start its background service. A
+  # second, foreground gateway would clash with it on port 18789.
+  if [ "$AGENT" = "openclaw" ] && openclaw_service_running; then
+    echo "[start] OpenClaw is already running in the background (its own service, which OpenClaw's setup can install)."
+    echo "[start] Run ./start.sh --background to restart it with your Discord settings, then check it with ./status.sh."
+    echo "[start] To run it in this window instead, run ./stop.sh first, then ./start.sh again."
+    exit 0
+  fi
+
   echo "Your agent is running in this window. Keep it open: closing it or pressing Ctrl-C stops your agent. To run it in the background instead, use ./start.sh --background"
   echo "[start] Launching: ${CMD[*]}"
   echo "[start] Working directory: $ABS_WORKDIR"
@@ -184,6 +197,21 @@ run_background_claude() {
 # Background: openclaw — its own gateway service (launchd / systemd --user).
 # ---------------------------------------------------------------------------
 run_background_openclaw() {
+  # Already running (for example, started by OpenClaw's own setup): restart
+  # it, because a new Discord bot token only takes effect after a restart.
+  if openclaw_service_running; then
+    echo "[start] OpenClaw's background service is already running. Restarting it so it picks up your Discord settings..."
+    if ! openclaw gateway restart; then
+      echo "[start] ERROR: could not restart OpenClaw's background service. Try ./stop.sh, then ./start.sh --background." >&2
+      exit 1
+    fi
+    echo "[start] Running in the background (OpenClaw's own service)."
+    echo "[start] Check it:  ./status.sh"
+    echo "[start] Watch it:  ./logs.sh"
+    echo "[start] Stop it:   ./stop.sh"
+    return
+  fi
+
   echo "[start] Starting OpenClaw's background service..."
 
   # `gateway start` is idempotent (already-running is a success, no-op) and
