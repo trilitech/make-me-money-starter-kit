@@ -152,6 +152,7 @@ setup_claude() {
 {
   "dmPolicy": "allowlist",
   "replyToMode": "first",
+  "ackReaction": "👀",
   "allowFrom": [],
   "groups": {
     "$MMM_CHANNEL_ID": {
