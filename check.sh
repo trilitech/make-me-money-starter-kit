@@ -170,6 +170,11 @@ check_openclaw() {
   chan_enabled="$(jget "$CONFIG_FILE" ".channels.discord.guilds.\"$MMM_GUILD_ID\".channels.\"$MMM_CHANNEL_ID\".enabled")"
   users="$(jget "$CONFIG_FILE" ".channels.discord.guilds.\"$MMM_GUILD_ID\".channels.\"$MMM_CHANNEL_ID\".users")"
 
+  local plugin_enabled
+  plugin_enabled="$(jget "$CONFIG_FILE" '.plugins.entries.discord.enabled')"
+  if [ "$plugin_enabled" = "true" ]; then plugin_ok=1; else plugin_ok=0; fi
+  result "$plugin_ok" "Discord plugin is trusted: plugins.entries.discord.enabled (found: $plugin_enabled)"
+
   if [ "$dm_policy" = "disabled" ]; then dm_ok=1; else dm_ok=0; fi
   result "$dm_ok" "dmPolicy is 'disabled' (found: $dm_policy)"
 
@@ -192,6 +197,20 @@ check_openclaw() {
   got="$(printf '%s' "$users" | tr -d '[]" \t\r' | tr ',' '\n' | sed '/^$/d' | sort)"
   if [ "$expected" = "$got" ]; then ids_ok=1; else ids_ok=0; fi
   result "$ids_ok" "Channel allow list matches MMM_ALLOWED_USER_IDS"
+
+  # If the gateway is up, ask it whether Discord is actually connected. The
+  # settings above can all pass while the channel still isn't running.
+  if command -v openclaw >/dev/null 2>&1 && openclaw gateway status --require-rpc >/dev/null 2>&1; then
+    local probe
+    probe="$(openclaw channels status --probe 2>&1 | grep -i 'discord' | head -1)"
+    if printf '%s' "$probe" | grep -qi 'not-running\|stopped\|blocked'; then
+      result 0 "Discord is connected (OpenClaw says: ${probe# *- }). Run ./start.sh --background to restart it."
+    elif [ -n "$probe" ]; then
+      result 1 "Discord is connected (OpenClaw says: ${probe# *- })"
+    fi
+  else
+    echo "INFO  OpenClaw isn't running yet, so the live Discord connection wasn't checked. Start it, then run ./check.sh again."
+  fi
 }
 
 case "${AGENT:-}" in

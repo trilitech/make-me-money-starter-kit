@@ -269,11 +269,20 @@ EOF
     }
     cfg.channels = cfg.channels || {};
     cfg.channels.discord = JSON.parse(process.env.DISCORD_BLOCK);
+    // OpenClaw ships Discord as a plugin and only runs it once it is
+    // trusted explicitly. Without this the channel shows "configured,
+    // stopped, health:not-running". (No apostrophes in this block: it sits
+    // inside a single-quoted shell string.)
+    cfg.plugins = cfg.plugins || {};
+    cfg.plugins.entries = cfg.plugins.entries || {};
+    cfg.plugins.entries.discord = Object.assign({}, cfg.plugins.entries.discord, { enabled: true });
     fs.writeFileSync(file, JSON.stringify(cfg, null, 2) + "\n");
   ' "$CONFIG_FILE"; then
     echo "[setup] ERROR: $CONFIG_FILE has comments or other JSON5 syntax, so it can't be merged automatically." >&2
-    echo "[setup] Set channels.discord in that file to exactly this, then run ./check.sh:" >&2
+    echo "[setup] Set channels.discord in that file to exactly this:" >&2
     echo "$DISCORD_BLOCK" >&2
+    echo "[setup] Also add this, so OpenClaw trusts its Discord plugin, then run ./check.sh:" >&2
+    echo '  "plugins": { "entries": { "discord": { "enabled": true } } }' >&2
     exit 1
   fi
   chmod 600 "$CONFIG_FILE"
