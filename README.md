@@ -97,6 +97,22 @@ cp .env.example .env
 
 ## 5. Run it
 
+First, install your agent software and connect it to your AI, if you
+haven't already:
+
+- **Claude** (`AGENT=claude`): install [Claude Code](https://code.claude.com/docs/en/setup)
+  and [Bun](https://bun.sh), run `claude` once, and sign in with your Claude
+  Pro/Max account or an Anthropic API key.
+- **OpenClaw** (`AGENT=openclaw`): you need Node.js 24.16 or newer. Install
+  with `curl -fsSL https://openclaw.ai/install.sh | bash` (Windows:
+  `iwr -useb https://openclaw.ai/install.ps1 | iex`). Its setup wizard
+  starts by itself: connect your model there (an API key, or an existing
+  Claude Code/Codex login). If you skipped it, run `openclaw onboard`.
+  Do this **before** `./setup.sh`. The kit only adds the Discord part to
+  OpenClaw's settings and keeps your model settings.
+
+Then:
+
 ```bash
 ./setup.sh
 ./check.sh

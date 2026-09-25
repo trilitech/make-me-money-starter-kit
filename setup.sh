@@ -208,44 +208,76 @@ setup_openclaw() {
 
   mkdir -p "$STATE_DIR"
 
-  backup_if_exists "$ENV_TOKEN_FILE"
-  printf 'DISCORD_BOT_TOKEN=%s\n' "$DISCORD_BOT_TOKEN" > "$ENV_TOKEN_FILE"
-  chmod 600 "$ENV_TOKEN_FILE"
-  WROTE_SUMMARY+=("$ENV_TOKEN_FILE (chmod 600)")
+  command -v node >/dev/null 2>&1 || die "node not found on PATH. OpenClaw needs Node.js 24.16+ anyway: install it, then re-run."
+  [ -f "$CONFIG_FILE" ] || log "WARNING: $CONFIG_FILE doesn't exist yet. Run OpenClaw's onboarding first (it starts after install, or run 'openclaw onboard') so your AI model is connected, then re-run this script."
 
-  backup_if_exists "$CONFIG_FILE"
+  # ~/.openclaw/.env may hold other keys (e.g. your model provider's API
+  # key): replace only the DISCORD_BOT_TOKEN line, keep everything else.
+  backup_if_exists "$ENV_TOKEN_FILE"
+  local TMP_ENV
+  TMP_ENV="$(mktemp)"
+  if [ -f "$ENV_TOKEN_FILE" ]; then
+    grep -v '^DISCORD_BOT_TOKEN=' "$ENV_TOKEN_FILE" > "$TMP_ENV" || true
+  fi
+  printf 'DISCORD_BOT_TOKEN=%s\n' "$DISCORD_BOT_TOKEN" >> "$TMP_ENV"
+  mv "$TMP_ENV" "$ENV_TOKEN_FILE"
+  chmod 600 "$ENV_TOKEN_FILE"
+  WROTE_SUMMARY+=("$ENV_TOKEN_FILE (DISCORD_BOT_TOKEN set, other lines kept; chmod 600)")
+
+  # openclaw.json also holds your model/provider settings from onboarding,
+  # so replace ONLY channels.discord and keep the rest of the file.
+  #
   # dmPolicy "disabled" turns off DMs outright (OpenClaw scopes DM and guild
   # policy separately, so this does not touch the guild/channel allowlist
   # below — unlike the Claude plugin's "disabled", these are independent).
   # groupPolicy "allowlist" + a channels map with only our channel means
   # every other channel in the guild is denied by default.
-  cat > "$CONFIG_FILE" <<EOF
+  local DISCORD_BLOCK
+  DISCORD_BLOCK=$(cat <<EOF
 {
-  "channels": {
-    "discord": {
-      "enabled": true,
-      "token": { "source": "env", "provider": "default", "id": "DISCORD_BOT_TOKEN" },
-      "dmPolicy": "disabled",
-      "groupPolicy": "allowlist",
-      "guilds": {
-        "$MMM_GUILD_ID": {
+  "enabled": true,
+  "token": { "source": "env", "provider": "default", "id": "DISCORD_BOT_TOKEN" },
+  "dmPolicy": "disabled",
+  "groupPolicy": "allowlist",
+  "guilds": {
+    "$MMM_GUILD_ID": {
+      "requireMention": true,
+      "users": $USER_IDS_JSON,
+      "channels": {
+        "$MMM_CHANNEL_ID": {
+          "enabled": true,
           "requireMention": true,
-          "users": $USER_IDS_JSON,
-          "channels": {
-            "$MMM_CHANNEL_ID": {
-              "enabled": true,
-              "requireMention": true,
-              "users": $USER_IDS_JSON
-            }
-          }
+          "users": $USER_IDS_JSON
         }
       }
     }
   }
 }
 EOF
+)
+  backup_if_exists "$CONFIG_FILE"
+  # openclaw.json is JSON5. Plain JSON (what onboarding normally writes)
+  # merges automatically; a file with comments or trailing commas can't be
+  # rewritten safely, so we stop and print the block to paste by hand.
+  if ! DISCORD_BLOCK="$DISCORD_BLOCK" node -e '
+    const fs = require("fs");
+    const file = process.argv[1];
+    let cfg = {};
+    if (fs.existsSync(file)) {
+      try { cfg = JSON.parse(fs.readFileSync(file, "utf8")); }
+      catch { process.exit(3); }
+    }
+    cfg.channels = cfg.channels || {};
+    cfg.channels.discord = JSON.parse(process.env.DISCORD_BLOCK);
+    fs.writeFileSync(file, JSON.stringify(cfg, null, 2) + "\n");
+  ' "$CONFIG_FILE"; then
+    echo "[setup] ERROR: $CONFIG_FILE has comments or other JSON5 syntax, so it can't be merged automatically." >&2
+    echo "[setup] Set channels.discord in that file to exactly this, then run ./check.sh:" >&2
+    echo "$DISCORD_BLOCK" >&2
+    exit 1
+  fi
   chmod 600 "$CONFIG_FILE"
-  WROTE_SUMMARY+=("$CONFIG_FILE (chmod 600)")
+  WROTE_SUMMARY+=("$CONFIG_FILE (channels.discord set, rest of file kept; chmod 600)")
 
   mkdir -p "$WORKDIR"
   if [ ! -f "$WORKDIR/AGENTS.md" ]; then
