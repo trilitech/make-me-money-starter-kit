@@ -166,14 +166,8 @@ EOF
   chmod 600 "$ACCESS_FILE"
   WROTE_SUMMARY+=("$ACCESS_FILE (chmod 600)")
 
-  # --- workdir + CLAUDE.md ---
-  mkdir -p "$WORKDIR"
-  if [ ! -f "$WORKDIR/CLAUDE.md" ]; then
-    sed "s|{{MMM_ARENA_URL}}|$MMM_ARENA_URL|g" "$SCRIPT_DIR/templates/CLAUDE.md" > "$WORKDIR/CLAUDE.md"
-    WROTE_SUMMARY+=("$WORKDIR/CLAUDE.md (created)")
-  else
-    log "$WORKDIR/CLAUDE.md already exists — left it alone."
-  fi
+  # --- workdir: CLAUDE.md, arena.sh, .gitignore ---
+  setup_workspace CLAUDE.md
 
   # --- $WORKDIR/.claude/settings.json ---
   # Fallback for when auto mode isn't available (start.sh asks for it): an
@@ -197,6 +191,44 @@ EOF
     WROTE_SUMMARY+=("$WORKDIR/.claude/settings.json (created)")
   else
     log "$WORKDIR/.claude/settings.json already exists — left it alone."
+  fi
+}
+
+# The agent's workspace: its brief, the arena helper, and a .gitignore for
+# the product repo the agent may create there. The arena link is a team
+# secret, so it stays in this kit's .env: arena.sh reads it at post time and
+# the brief only mentions the helper.
+setup_workspace() {
+  local brief="$1"
+  mkdir -p "$WORKDIR"
+
+  if [ ! -f "$WORKDIR/$brief" ]; then
+    cp "$SCRIPT_DIR/templates/$brief" "$WORKDIR/$brief"
+    WROTE_SUMMARY+=("$WORKDIR/$brief (created)")
+  else
+    log "$WORKDIR/$brief already exists — left it alone."
+    if grep -qF "$MMM_ARENA_URL" "$WORKDIR/$brief"; then
+      warn "$WORKDIR/$brief still contains your secret arena link (from an older kit)."
+      warn "  Replace the curl command there with: ./arena.sh \"your message\""
+    fi
+  fi
+
+  sed "s|{{KIT_ENV}}|$ENV_FILE|g" "$SCRIPT_DIR/templates/arena.sh" > "$WORKDIR/arena.sh"
+  chmod 755 "$WORKDIR/arena.sh"
+  WROTE_SUMMARY+=("$WORKDIR/arena.sh (posts to the arena; reads the link from .env)")
+
+  if [ ! -f "$WORKDIR/.gitignore" ]; then
+    cat > "$WORKDIR/.gitignore" <<'GI'
+# Keep secrets and local files out of your product's repo.
+.env
+.env.*
+arena.sh
+logs/
+*.log
+node_modules/
+.claude/settings.local.json
+GI
+    WROTE_SUMMARY+=("$WORKDIR/.gitignore (created)")
   fi
 }
 
@@ -291,13 +323,7 @@ EOF
   chmod 600 "$CONFIG_FILE"
   WROTE_SUMMARY+=("$CONFIG_FILE (channels.discord set, rest of file kept; chmod 600)")
 
-  mkdir -p "$WORKDIR"
-  if [ ! -f "$WORKDIR/AGENTS.md" ]; then
-    sed "s|{{MMM_ARENA_URL}}|$MMM_ARENA_URL|g" "$SCRIPT_DIR/templates/AGENTS.md" > "$WORKDIR/AGENTS.md"
-    WROTE_SUMMARY+=("$WORKDIR/AGENTS.md (created)")
-  else
-    log "$WORKDIR/AGENTS.md already exists — left it alone."
-  fi
+  setup_workspace AGENTS.md
 }
 
 if [ "$AGENT" = "claude" ]; then
