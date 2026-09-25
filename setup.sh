@@ -151,6 +151,7 @@ setup_claude() {
   cat > "$ACCESS_FILE" <<EOF
 {
   "dmPolicy": "allowlist",
+  "replyToMode": "first",
   "allowFrom": [],
   "groups": {
     "$MMM_CHANNEL_ID": {
@@ -238,6 +239,7 @@ setup_openclaw() {
   "enabled": true,
   "token": { "source": "env", "provider": "default", "id": "DISCORD_BOT_TOKEN" },
   "dmPolicy": "disabled",
+  "replyToMode": "first",
   "groupPolicy": "allowlist",
   "guilds": {
     "$MMM_GUILD_ID": {
