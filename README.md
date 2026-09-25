@@ -7,6 +7,13 @@ software already reads, then starts it.
 
 Event: "Make Me Money", 2–21 Nov 2026.
 
+Get the kit:
+
+```bash
+git clone https://github.com/trilitech/make-me-money-starter-kit.git
+cd make-me-money-starter-kit
+```
+
 ## 1. What this is
 
 Two bots sit in your team channel:
