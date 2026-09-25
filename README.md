@@ -124,28 +124,41 @@ config (OpenClaw), and writes a brief (`CLAUDE.md` or `AGENTS.md`) into
 `WORKDIR` with the event goal and the arena command. `check.sh` reads the
 config back and prints PASS/FAIL for the safety properties that matter: DMs
 off, only your team channel enabled, @mention required, and the allow list
-matching your `.env`. `start.sh` launches the agent in the background, in a
-`tmux` session named `mmm-agent`, so it keeps running after you close the
-terminal. It waits a few seconds to check the agent stayed up, and if it
-stopped, prints the error. Everything the agent prints is saved to
-`logs/agent.log`.
+matching your `.env`.
 
-To watch it start up in your own terminal instead (handy when something's
-wrong), run `./start.sh --foreground`. Stop it with Ctrl-C.
+**Recommended path:** on a laptop, just run `./start.sh` and leave the
+window open. On a server, or if you want to close the window, use
+`./start.sh --background`.
+
+- **`./start.sh`** — runs your agent right here, in this terminal window.
+  This is the default; `./start.sh --foreground` is the same thing spelled
+  out. Closing the window, or pressing Ctrl-C, stops your agent. Nothing
+  else to install or learn.
+- **`./start.sh --background`** — keeps your agent running after you close
+  the window. For Claude, this kit hides the mechanism behind the scripts;
+  you never need to interact with it. For OpenClaw, it uses OpenClaw's own
+  background service.
+- **`./status.sh`** — a plain answer: is your agent running, and where
+  (a background run, or a terminal window), plus its last 15 lines of
+  output.
+- **`./logs.sh`** — follow your agent's output live. Ctrl-C stops watching
+  without stopping the agent.
+- **`./stop.sh`** — stops a background run, and confirms.
 
 ## 6. Keep it running 24/7
 
-The agent only responds while its process is running.
+The agent only responds while it's running.
 
 - Simplest: leave your laptop awake for the two weeks (disable sleep, stay
-  plugged in and on Wi-Fi).
-- More reliable: a small always-on VPS ($5–10/month), with `tmux` (which
-  `start.sh` already uses if installed), `pm2`, or `systemd` so it survives
-  disconnects and reboots.
+  plugged in and on Wi-Fi), with `./start.sh` running in an open window.
+- More reliable: a small always-on VPS ($5–10/month) with
+  `./start.sh --background`, so it survives you disconnecting and (for
+  OpenClaw) reboots.
 
-If you used `start.sh`'s tmux session, reattach any time with
-`tmux attach -t mmm-agent`, and detach without stopping it with `Ctrl-b`
-then `d`.
+The only thing worth knowing about the mechanism: Claude's background mode
+uses `tmux` under the hood, and `setup.sh`/`start.sh` tell you if you need to
+install it. You'll never need to use tmux directly — `./status.sh`,
+`./logs.sh`, and `./stop.sh` cover everything.
 
 ## 7. Test it
 
@@ -158,9 +171,9 @@ If step 2 fails, something is misconfigured; re-run `./check.sh`.
 
 ## 8. Troubleshooting
 
-- **Nothing responds at all** — is the process still running? Check
-  `tmux attach -t mmm-agent` (Claude/OpenClaw) or your process manager.
-  Confirm Message Content Intent is enabled on the bot (step 3.4).
+- **Nothing responds at all** — is it still running? Check `./status.sh`,
+  then `./logs.sh` for what it last printed. Confirm Message Content Intent
+  is enabled on the bot (step 3.4).
 - **It responds without being @mentioned** — `check.sh` will show
   `requireMention` as `false` or missing; re-run `./setup.sh`.
 - **It responds in the wrong channel, or DMs work** — re-run `./check.sh`.

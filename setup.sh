@@ -302,4 +302,10 @@ log "Done. Files written or updated:"
 for line in "${WROTE_SUMMARY[@]}"; do
   printf '  - %s\n' "$line"
 done
-log "Next: run ./check.sh to verify, then ./start.sh to launch the agent."
+log "Next:"
+log "  ./check.sh              verify the config is safe"
+log "  ./start.sh              run your agent — leave this window open"
+log "  ./start.sh --background keep it running after you close the window"
+log "  ./status.sh             is it running, and where"
+log "  ./logs.sh               watch its output live"
+log "  ./stop.sh               stop a background run"
