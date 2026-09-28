@@ -8,7 +8,8 @@ own agent, so your agent answers only in your team channel, only when
 ## Quick start
 
 **Before you start:** install your agent software and sign in to your AI
-([details](#install-your-agent)).
+([details](#install-your-agent)). The kit runs on macOS and Linux. On
+Windows, run it inside [WSL](https://learn.microsoft.com/windows/wsl/install).
 
 1. **Create your agent's Discord bot.**
    [Discord Developer Portal](https://discord.com/developers/applications)
