@@ -256,12 +256,58 @@ check_custom() {
   echo "INFO  The channel/mention/DM limits (team channel only, @mention or reply-to-bot required, allowed users only, DMs and bots ignored) are enforced inside bridge/bridge.py's should_handle(), not a separate config file."
 }
 
+# Asks Discord about the bot itself, whatever engine runs it. A bot whose
+# Message Content Intent is off is refused at login, so it stays offline
+# with no error on the agent's side.
+check_discord_bot() {
+  if ! command -v curl >/dev/null 2>&1; then
+    echo "INFO  curl not found, so the Discord bot itself wasn't checked."
+    return
+  fi
+  if [ -z "${DISCORD_BOT_TOKEN:-}" ]; then
+    result 0 "DISCORD_BOT_TOKEN is set in .env"
+    return
+  fi
+  local tmp code
+  tmp="$(mktemp)"
+  code="$(curl -sS -o "$tmp" -w '%{http_code}' -H "Authorization: Bot $DISCORD_BOT_TOKEN" https://discord.com/api/v10/users/@me 2>/dev/null || echo 000)"
+  if [ "$code" = "000" ]; then
+    echo "INFO  Couldn't reach Discord, so the bot itself wasn't checked."
+    rm -f "$tmp"; return
+  fi
+  if [ "$code" != "200" ]; then
+    result 0 "Discord accepts your bot token (it said HTTP $code: copy the token again from the Bot tab, or click Reset Token)"
+    rm -f "$tmp"; return
+  fi
+  result 1 "Discord accepts your bot token (bot: $(jget "$tmp" '.username'))"
+
+  curl -sS -o "$tmp" -H "Authorization: Bot $DISCORD_BOT_TOKEN" https://discord.com/api/v10/applications/@me 2>/dev/null || true
+  local flags
+  flags="$(jget "$tmp" '.flags')"
+  case "$flags" in ''|null|*[!0-9]*) flags=0 ;; esac
+  # GATEWAY_MESSAGE_CONTENT (1<<18) or GATEWAY_MESSAGE_CONTENT_LIMITED (1<<19)
+  if [ $(( flags & (262144 | 524288) )) -ne 0 ]; then
+    result 1 "Message Content Intent is on"
+  else
+    result 0 "Message Content Intent is on (turn it on: Developer Portal, Bot tab, Privileged Gateway Intents, then Save and restart your agent)"
+  fi
+
+  curl -sS -o "$tmp" -H "Authorization: Bot $DISCORD_BOT_TOKEN" https://discord.com/api/v10/users/@me/guilds 2>/dev/null || true
+  if grep -q "\"id\": *\"$MMM_GUILD_ID\"" "$tmp"; then
+    result 1 "Your bot is in the Make Me Money server"
+  else
+    result 0 "Your bot is in the Make Me Money server (not yet: run /agent register in your team channel and wait for an organizer to add it)"
+  fi
+  rm -f "$tmp"
+}
+
 case "${AGENT:-}" in
   claude) check_claude ;;
   openclaw) check_openclaw ;;
   custom) check_custom ;;
   *) echo "[check] ERROR: AGENT must be 'claude', 'openclaw' or 'custom' in .env." >&2; exit 1 ;;
 esac
+check_discord_bot
 
 echo
 if [ "$PASS" -eq 1 ]; then
