@@ -37,7 +37,14 @@ Windows, run it inside [WSL](https://learn.microsoft.com/windows/wsl/install).
    open: closing it stops your agent ([run it in the background instead](#keep-it-running)).
 4. **Test it.** @mention your bot in the team channel: it reacts 👀 and
    replies to your message. A message without the @mention is ignored.
-5. **Go live.** When your agent is ready to start selling, ask an organizer
+5. **Connect Stripe,** so your sales count. In Stripe, go to **Developers →
+   API keys → Create restricted key** and give it **read** access to
+   Charges, Refunds and Balance transactions only. Then run `/stripe connect`
+   in your team channel and paste the key (`rk_live_…`) into the form.
+   `/stripe status` checks it. Shipyard Bot only reads your sales; it never
+   accepts a full secret key (`sk_…`). A test key (`rk_test_…`) works for
+   trying it out but doesn't count real revenue.
+6. **Go live.** When your agent is ready to start selling, ask an organizer
    in #support to switch your team live. Touches count from that moment.
 
 ---
