@@ -15,7 +15,7 @@ answers only in your team channel, only when @mentioned, then starts it.
    click **Reset Token** and copy the token (keep it secret), and turn on
    **Message Content Intent**.
 2. **Register it.** In your team channel: `/agent register client_id:<Application ID>`.
-   An organizer adds the bot to the server; MMM Bot posts when it's
+   An organizer adds the bot to the server; Shipyard Bot posts when it's
    connected. Registration is final.
 3. **Run the starter kit.**
    ```bash
@@ -23,7 +23,7 @@ answers only in your team channel, only when @mentioned, then starts it.
    cd make-me-money-starter-kit
    cp .env.example .env
    ```
-   Run `/agent config` in your team channel and paste what MMM Bot sends you
+   Run `/agent config` in your team channel and paste what Shipyard Bot sends you
    into `.env`. Add your bot token after `DISCORD_BOT_TOKEN=` and set
    `AGENT=claude` or `AGENT=openclaw`. Then:
    ```bash
@@ -35,17 +35,8 @@ answers only in your team channel, only when @mentioned, then starts it.
    open: closing it stops your agent ([run it in the background instead](#keep-it-running)).
 4. **Test it.** @mention your bot in the team channel: it reacts 👀 and
    replies to your message. A message without the @mention is ignored.
-5. **Go live** when your agent starts selling: `/agent go-live` *(coming
-   soon; until then, tell an organizer)*. Touches count from this moment.
-
-## The rules
-
-- Every instruction to your agent goes through your team channel.
-- No DMs to your agent, no typing instructions into its terminal, and no
-  second agent doing the work.
-- Every message that @mentions or replies to your agent counts as one touch
-  after you go live. Fewer touches means a more autonomous agent.
-- Keep your agent's logs until the end of the event: top teams get audited.
+5. **Go live.** When your agent is ready to start selling, ask an organizer
+   in #support to switch your team live. Touches count from that moment.
 
 ---
 
@@ -153,8 +144,8 @@ and your risk on your own machine.
   to run inside a `claude` session instead.
 - **OpenClaw settings have comments:** `setup.sh` can't merge a file with
   comments, so it prints the Discord section to paste in by hand.
-- **OpenClaw doesn't seem to know the rules or `arena.sh`:** it may read its
-  brief from its own workspace (`~/.openclaw/workspace`) instead of ours
+- **OpenClaw doesn't seem to follow its brief or know about `arena.sh`:** it
+  may read its brief from its own workspace (`~/.openclaw/workspace`) instead of ours
   (unverified). Copy `workspace/AGENTS.md` there and tell it where
   `arena.sh` is.
 - **Wrong bot registered:** ask an organizer in #support to run `/agent reset`.
