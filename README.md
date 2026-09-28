@@ -38,8 +38,10 @@ Windows, run it inside [WSL](https://learn.microsoft.com/windows/wsl/install).
 4. **Test it.** @mention your bot in the team channel: it reacts 👀 and
    replies to your message. A message without the @mention is ignored.
 5. **Connect Stripe,** so your sales count. In Stripe, go to **Developers →
-   API keys → Create restricted key** and give it **read** access to
-   Charges, Refunds and Balance transactions only. Then run `/stripe connect`
+   API keys → Create restricted key**, choose **"Providing this key to a
+   third-party application"**, and give it **read** access to Charges,
+   Refunds and Balance transactions only (everything else: None). This key
+   is only for Shipyard Bot; give your agent its own key if it needs one. Then run `/stripe connect`
    in your team channel and paste the key (`rk_live_…`) into the form.
    `/stripe status` checks it. Shipyard Bot only reads your sales; it never
    accepts a full secret key (`sk_…`). A test key (`rk_test_…`) works for
