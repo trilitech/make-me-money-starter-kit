@@ -34,7 +34,7 @@ load_env_file "$ENV_FILE"
 echo "Showing your agent's output. Press Ctrl-C to stop watching; your agent keeps running."
 
 case "$AGENT" in
-  claude)
+  claude|custom)
     [ -f "$LOG_FILE" ] || {
       echo "[logs] No log file yet." >&2
       echo "[logs] If your agent is running in the foreground right now, its output isn't logged to a file — look at that window instead." >&2
@@ -48,7 +48,7 @@ case "$AGENT" in
     exec openclaw logs --follow
     ;;
   *)
-    echo "[logs] ERROR: AGENT must be 'claude' or 'openclaw' in .env." >&2
+    echo "[logs] ERROR: AGENT must be 'claude', 'openclaw' or 'custom' in .env." >&2
     exit 1
     ;;
 esac

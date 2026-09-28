@@ -213,10 +213,54 @@ check_openclaw() {
   fi
 }
 
+check_custom() {
+  local VENV="$SCRIPT_DIR/.venv"
+  local PY="$VENV/bin/python3"
+  [ -x "$PY" ] || PY="$VENV/bin/python"
+
+  local venv_ok=0
+  [ -x "$PY" ] && venv_ok=1
+  result "$venv_ok" ".venv exists with a python interpreter (found: $PY)"
+
+  local discord_ok=0
+  if [ "$venv_ok" -eq 1 ] && "$PY" -c 'import discord' >/dev/null 2>&1; then
+    discord_ok=1
+  fi
+  result "$discord_ok" "discord.py is importable in .venv"
+
+  local have_url=0 have_cmd=0
+  [ -n "${CUSTOM_AGENT_URL:-}" ] && have_url=1
+  [ -n "${CUSTOM_AGENT_CMD:-}" ] && have_cmd=1
+  local target_ok=0
+  if [ "$have_url" -eq 1 ] && [ "$have_cmd" -eq 0 ]; then target_ok=1; fi
+  if [ "$have_cmd" -eq 1 ] && [ "$have_url" -eq 0 ]; then target_ok=1; fi
+  result "$target_ok" "Exactly one of CUSTOM_AGENT_URL / CUSTOM_AGENT_CMD is set (url:$have_url cmd:$have_cmd)"
+
+  if [ "$target_ok" -eq 1 ] && [ "$have_url" -eq 1 ]; then
+    # A reachable-but-erroring endpoint (4xx/5xx) still proves something is
+    # listening, so treat any HTTP response as PASS; only a connection
+    # failure (nothing listening yet) is a FAIL.
+    local code
+    code="$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$CUSTOM_AGENT_URL" \
+      -H 'Content-Type: application/json' -d '{"prompt":"ping","author_id":"0","author_name":"check.sh","message_id":"0","channel_id":"0"}' \
+      --max-time 10 2>/dev/null)" || code=""
+    if [ -n "$code" ] && [ "$code" != "000" ]; then
+      result 1 "CUSTOM_AGENT_URL answers (got HTTP $code from $CUSTOM_AGENT_URL)"
+    else
+      result 0 "CUSTOM_AGENT_URL answers (connection refused/unreachable — start your agent first)"
+    fi
+  elif [ "$target_ok" -eq 1 ] && [ "$have_cmd" -eq 1 ]; then
+    echo "INFO  CUSTOM_AGENT_CMD is set; it runs per-prompt, so there's nothing to probe ahead of time."
+  fi
+
+  echo "INFO  The channel/mention/DM limits (team channel only, @mention or reply-to-bot required, allowed users only, DMs and bots ignored) are enforced inside bridge/bridge.py's should_handle(), not a separate config file."
+}
+
 case "${AGENT:-}" in
   claude) check_claude ;;
   openclaw) check_openclaw ;;
-  *) echo "[check] ERROR: AGENT must be 'claude' or 'openclaw' in .env." >&2; exit 1 ;;
+  custom) check_custom ;;
+  *) echo "[check] ERROR: AGENT must be 'claude', 'openclaw' or 'custom' in .env." >&2; exit 1 ;;
 esac
 
 echo

@@ -59,7 +59,7 @@ tmux_session_alive() {
 }
 
 case "$AGENT" in
-  claude)
+  claude|custom)
     if tmux_session_alive; then
       SINCE_EPOCH="$(tmux display-message -p -t "$SESSION" '#{session_created}')"
       echo "Running (background, since $(epoch_to_hhmm "$SINCE_EPOCH"))"
@@ -82,7 +82,7 @@ case "$AGENT" in
     fi
     ;;
   *)
-    echo "[status] ERROR: AGENT must be 'claude' or 'openclaw' in .env." >&2
+    echo "[status] ERROR: AGENT must be 'claude', 'openclaw' or 'custom' in .env." >&2
     exit 1
     ;;
 esac
@@ -90,11 +90,11 @@ esac
 echo
 echo "Last output:"
 case "$AGENT" in
-  claude)
+  claude|custom)
     if tmux_session_alive; then
       if [ -f "$LOG_FILE" ]; then tail -n 15 "$LOG_FILE"; else echo "(no log yet)"; fi
     elif foreground_running; then
-      echo "(Claude runs as an interactive terminal app in the foreground; its output isn't saved to a log file there. Look at the window it's running in.)"
+      echo "(Your agent runs directly in the foreground window; its output isn't saved to a log file there. Look at the window it's running in.)"
     elif [ -f "$LOG_FILE" ]; then
       tail -n 15 "$LOG_FILE"
     else

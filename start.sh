@@ -68,8 +68,15 @@ case "$AGENT" in
   openclaw)
     CMD=(openclaw gateway)
     ;;
+  custom)
+    # Absolute paths: run_foreground/run_background_tmux both `cd
+    # "$ABS_WORKDIR"` before launching, which is the agent's product
+    # workspace, not this kit folder — bridge.py itself locates the kit's
+    # .env relative to its own file path either way.
+    CMD=("$SCRIPT_DIR/.venv/bin/python" "$SCRIPT_DIR/bridge/bridge.py")
+    ;;
   *)
-    echo "[start] ERROR: AGENT must be 'claude' or 'openclaw' in .env." >&2
+    echo "[start] ERROR: AGENT must be 'claude', 'openclaw' or 'custom' in .env." >&2
     exit 1
     ;;
 esac
@@ -122,6 +129,12 @@ run_foreground() {
     # ./start.sh --background for a version whose output is saved to
     # logs/agent.log.
     "${CMD[@]}"
+  elif [ "$AGENT" = "custom" ]; then
+    # bridge.py isn't a TUI, but we keep foreground behaviour identical to
+    # Claude's (no tee): status.sh/logs.sh treat "running in a terminal
+    # window" the same way for both. Use ./start.sh --background for a
+    # version whose output is saved to logs/agent.log.
+    "${CMD[@]}"
   else
     # openclaw gateway just prints plain server logs (not a TUI), so it's
     # safe to also save them to logs/agent.log here.
@@ -131,11 +144,13 @@ run_foreground() {
 }
 
 # ---------------------------------------------------------------------------
-# Background: claude — tmux hidden behind the scripts.
+# Background: claude and custom — a hidden tmux session behind the scripts.
+# Shared because both are just "run this command, keep it alive, log it";
+# only Claude has the one-time first-run questions below.
 # ---------------------------------------------------------------------------
-run_background_claude() {
+run_background_tmux() {
   if ! command -v tmux >/dev/null 2>&1; then
-    echo "[start] Claude's background mode uses tmux (you'll never need to use it directly — this kit hides it). It isn't installed." >&2
+    echo "[start] This background mode uses tmux (you'll never need to use it directly — this kit hides it). It isn't installed." >&2
     if [ "$(uname -s)" = "Darwin" ]; then
       echo "[start] Install it with: brew install tmux" >&2
     else
@@ -145,7 +160,7 @@ run_background_claude() {
     exit 1
   fi
 
-  if [ ! -f "$HOME/.claude.json" ]; then
+  if [ "$AGENT" = "claude" ] && [ ! -f "$HOME/.claude.json" ]; then
     echo "[start] NOTE: Claude Code's first run on this machine may ask one-time questions (trust this folder, sign in), and nothing is watching this hidden session to answer them." >&2
     echo "[start]       Run ./start.sh once in the foreground first, answer them there, then re-run ./start.sh --background." >&2
   fi
@@ -258,8 +273,8 @@ run_background_openclaw() {
 }
 
 run_background() {
-  if [ "$AGENT" = "claude" ]; then
-    run_background_claude
+  if [ "$AGENT" = "claude" ] || [ "$AGENT" = "custom" ]; then
+    run_background_tmux
   else
     run_background_openclaw
   fi

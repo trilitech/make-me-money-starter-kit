@@ -58,8 +58,8 @@ require_var MMM_ARENA_URL
 require_var WORKDIR
 
 case "$AGENT" in
-  claude|openclaw) ;;
-  *) die "AGENT must be 'claude' or 'openclaw', got '$AGENT'." ;;
+  claude|openclaw|custom) ;;
+  *) die "AGENT must be 'claude', 'openclaw' or 'custom', got '$AGENT'." ;;
 esac
 
 is_digits() { [[ "$1" =~ ^[0-9]+$ ]]; }
@@ -326,10 +326,48 @@ EOF
   setup_workspace AGENTS.md
 }
 
+setup_custom() {
+  command -v python3 >/dev/null 2>&1 || die "python3 not found on PATH. Install Python 3.9+: https://www.python.org/downloads/"
+
+  local PYVER
+  PYVER="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null)" || die "could not determine python3's version."
+  python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)' \
+    || die "python3 is $PYVER; bridge/bridge.py needs Python 3.9+."
+  log "python3: $PYVER"
+
+  # Exactly one of the two agent targets must be set (see bridge/bridge.py).
+  local have_url=0 have_cmd=0
+  [ -n "${CUSTOM_AGENT_URL:-}" ] && have_url=1
+  [ -n "${CUSTOM_AGENT_CMD:-}" ] && have_cmd=1
+  if [ "$have_url" -eq 1 ] && [ "$have_cmd" -eq 1 ]; then
+    die "both CUSTOM_AGENT_URL and CUSTOM_AGENT_CMD are set in .env — set exactly one."
+  fi
+  if [ "$have_url" -eq 0 ] && [ "$have_cmd" -eq 0 ]; then
+    die "set exactly one of CUSTOM_AGENT_URL or CUSTOM_AGENT_CMD in .env before running ./setup.sh."
+  fi
+
+  # --- .venv + the bridge's one dependency (discord.py) ---
+  if [ ! -d "$SCRIPT_DIR/.venv" ]; then
+    python3 -m venv "$SCRIPT_DIR/.venv" || die "could not create .venv (on Debian/Ubuntu you may need: apt install python3-venv)."
+    log "Created .venv"
+  else
+    log ".venv already exists — reusing it."
+  fi
+  "$SCRIPT_DIR/.venv/bin/pip" install --quiet --upgrade pip >/dev/null 2>&1 || true
+  "$SCRIPT_DIR/.venv/bin/pip" install --quiet -r "$SCRIPT_DIR/bridge/requirements.txt" \
+    || die "pip install -r bridge/requirements.txt failed."
+  log "Installed bridge/requirements.txt into .venv"
+  WROTE_SUMMARY+=("$SCRIPT_DIR/.venv (bridge/requirements.txt installed)")
+
+  setup_workspace AGENTS.md
+}
+
 if [ "$AGENT" = "claude" ]; then
   setup_claude
-else
+elif [ "$AGENT" = "openclaw" ]; then
   setup_openclaw
+else
+  setup_custom
 fi
 
 # ---------------------------------------------------------------------------

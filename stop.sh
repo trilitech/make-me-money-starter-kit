@@ -33,10 +33,10 @@ load_env_file() {
 load_env_file "$ENV_FILE"
 
 case "$AGENT" in
-  claude)
+  claude|custom)
     if command -v tmux >/dev/null 2>&1 && tmux has-session -t "$SESSION" 2>/dev/null; then
       tmux kill-session -t "$SESSION"
-      echo "[stop] Stopped. Your background Claude agent is no longer running."
+      echo "[stop] Stopped. Your background agent is no longer running."
     else
       echo "[stop] Nothing was running in the background."
     fi
@@ -59,7 +59,7 @@ case "$AGENT" in
     echo "[stop] Stopped. OpenClaw's background service is no longer running."
     ;;
   *)
-    echo "[stop] ERROR: AGENT must be 'claude' or 'openclaw' in .env." >&2
+    echo "[stop] ERROR: AGENT must be 'claude', 'openclaw' or 'custom' in .env." >&2
     exit 1
     ;;
 esac
